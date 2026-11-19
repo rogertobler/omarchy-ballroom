@@ -2096,7 +2096,10 @@ Panel {
                       readonly property bool asking: !svc.browsersAsked
                       readonly property bool waiting: picked !== "" && (svc.namingAccount || !root.accountAsked)
                       readonly property bool failed: picked !== "" && !svc.namingAccount && root.accountAsked
-                      readonly property bool choosing: !asking && !waiting && !failed && !root.nameByHand && anyBrowser
+                      // Going without a browser counts only while the saved setting names none. The panel never says
+                      // "public only" on the strength of a click whose saving may have failed.
+                      readonly property bool byHand: root.nameByHand && picked === ""
+                      readonly property bool choosing: !asking && !waiting && !failed && !byHand && anyBrowser
 
                       Text {
                         textFormat: Text.PlainText
@@ -2104,7 +2107,7 @@ Panel {
                           : scSetup.waiting ? "Asking " + scSetup.picked + " whose account it is…"
                           : scSetup.choosing ? "Pick the browser you are signed in to SoundCloud with. Ballroom reads that session to ask SoundCloud whose it is, and for nothing else."
                           : scSetup.failed ? "That browser did not say whose account it is: it may not be signed in, or its cookie store stayed locked. Type the name, or pick another browser."
-                          : root.nameByHand || svc.browsersAnswered === false ? "Type the name of a profile: the part after soundcloud.com/ in its address. Only what that profile shows publicly appears here."
+                          : scSetup.byHand || svc.browsersAnswered === false ? "Type the name of a profile: the part after soundcloud.com/ in its address. Only what that profile shows publicly appears here."
                           : svc.lockedStore ? "A browser is here, but its cookie store could not be opened. Type the name of a profile: the part after soundcloud.com/ in its address."
                           : "No browser here keeps a cookie store Ballroom can read. Type the name of a profile: the part after soundcloud.com/ in its address."
                         color: root.dim
@@ -2157,12 +2160,13 @@ Panel {
                           fontFamily: root.fontFamily
                           fontSize: Style.font.caption
                           onClicked: {
-                            // Both ways leave no browser session in use: an empty setting would mean "take the
-                            // one that is signed in", so going without a browser has to say "none".
-                            if (svc.soundcloudCookies !== "none") svc.setSoundcloudCookies("-")
+                            // While the browsers are offered none is set (picked is empty), and an empty setting
+                            // reads no browser: there is nothing to save. After a failed browser, its name is taken
+                            // back first; until that is saved, picked keeps it and the panel keeps saying so.
                             if (scSetup.choosing) { root.nameByHand = true; return }
                             root.nameByHand = false
                             root.accountAsked = false
+                            if (scSetup.picked !== "") svc.setSoundcloudCookies("-")
                           }
                         }
                       }

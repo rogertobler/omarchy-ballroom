@@ -24,7 +24,7 @@ import { join } from "path";
 import { isatty } from "tty";
 import { Database } from "bun:sqlite";
 
-const VERSION = "0.1.1";
+const VERSION = "0.1.2";
 
 // ---------------------------------------------------------------- places
 // The bench sets BALLROOM_BENCH=1 and may then hand in a recorded graph, fake servers and a short time limit.
@@ -1994,17 +1994,16 @@ const queueOf = (items: StageItem[], pos: number): Queue => ({ ids: items.map(st
 // The browser session yt-dlp may read, so that private likes and tracks come along. Measured on a profile with
 // 130 public likes: with the session 133, the three private ones included, in 3.7 s instead of 1.5 s. The value
 // is a browser name, a keyring and a profile path, not a secret; the cookies stay in yt-dlp.
-// Nothing has to be set: without a setting Ballroom takes the browser that holds a SoundCloud session.
+// Nothing is read until a browser is chosen: in the panel, or with `ballroom sc cookies auto|BROWSER`. An empty
+// setting reads no browser, and so does "none", the value `sc cookies -` stores. A session that belongs to the
+// user's browser is used only because the user said so, never because it happens to be there.
 // browser, optionally +keyring, optionally :profile. The leading letters keep a value from ever starting with a
 // dash, so it cannot be read as an option however it reaches yt-dlp.
 const cookieSpecOk = (v: string) => /^[a-z]+(\+[a-z]+)?(:[^\r\n]{1,240})?$/.test(v);
-// "none" is the way to say no: an empty setting means "take the browser that holds a session", so clearing it
-// could never have turned the reading off.
 const COOKIES_OFF = "none";
 function ytdlpCookieArgs(): string[] {
   const v = String(widgetValues().soundcloudCookies ?? "").trim();
-  if (v === COOKIES_OFF) return [];
-  if (!v) { const auto = autoCookieSpec(); return auto ? ["--cookies-from-browser", auto] : []; }
+  if (!v || v === COOKIES_OFF) return [];
   if (!cookieSpecOk(v)) { warnings.push("the SoundCloud browser cookies setting is not a browser name like brave or brave:/path/to/profile; ignored"); return []; }
   // A Chromium store without a keyring in the spec opens nothing and says nothing about it: only the public
   // tracks come back. `sc cookies` tries the keyrings before it keeps a browser, so this is a value from an
@@ -2035,34 +2034,6 @@ function resolveCookieSpec(b: BrowserStore): string | null {
   for (const k of KEYRINGS) { const spec = `${b.browser}+${k}:${b.profile}`; if (cookieSpecWorks(spec)) return spec; }
   return cookieSpecWorks(b.value) ? b.value : null;
 }
-// Trying the keyrings costs a second or two per browser, and this sits in front of every search, every list and
-// every play, so the answer is kept. Keyed on WHICH stores are signed in, not on when they were last written: a
-// browser that is running rewrites its store continuously, and keying on that would re-probe on nearly every
-// call and eat the deadline of the very verb the user is waiting for. The keyring of a desktop does not change
-// from one hour to the next; a day is the right patience, and a browser that appears or goes drops the memo.
-type CookieMemo = { spec: string; store: string; at: number };
-let cookieSpecNow: string | null | undefined;
-function autoCookieSpec(): string | null {
-  if (cookieSpecNow !== undefined) return cookieSpecNow;
-  cookieSpecNow = null;
-  if (!Bun.which("yt-dlp")) return null;
-  const signedIn = browserStores().filter((b) => b.soundcloud);
-  const stamp = signedIn.map((b) => b.value).sort().join("|");
-  let memo: CookieMemo | null = null;
-  try { memo = JSON.parse(readFileSync(join(RUNTIME, "sc-cookies.json"), "utf8")); } catch { /* not resolved yet */ }
-  // The memo is read back from a file, so it goes through the same check as a value that was typed.
-  if (memo && memo.store === stamp && Date.now() - memo.at < 86400000) {
-    cookieSpecNow = cookieSpecOk(memo.spec) ? memo.spec : null;
-    return cookieSpecNow;
-  }
-  let found = "";
-  for (const b of signedIn) { const spec = resolveCookieSpec(b); if (spec) { found = spec; break; } }
-  try { writeRuntime("sc-cookies.json", JSON.stringify({ spec: found, store: stamp, at: Date.now() })); } catch { /* the memo is a convenience */ }
-  if (!found && signedIn.length) warnings.push("a browser is signed in on SoundCloud, but its session could not be unlocked; only public tracks show");
-  cookieSpecNow = found || null;
-  return cookieSpecNow;
-}
-
 // Which browsers keep a cookie store on this machine, and which of them holds a SoundCloud session. Only the
 // host column of the store is read, never a cookie value: the answer is a browser name and the profile that
 // holds the session, which is exactly what yt-dlp is given. The store is opened read only, so a browser that is
@@ -2599,10 +2570,9 @@ async function verbStage(verb: string, args: string[]): Promise<Out> {
                                       : "no browser keeps a cookie store here" };
         }
         const want = rest.join(" ").trim();
-        const shown = () => { const v = String(widgetValues().soundcloudCookies ?? "").trim(); return v === COOKIES_OFF ? "none" : v ? v.split(":")[0].split("+")[0] : "auto"; };
-        if (!want) return { json: { ok: true, cookies: shown() }, text: shown() === "none" ? "no browser session is read; ballroom sc cookies auto turns it on"
-          : shown() === "auto" ? "the browser that holds a SoundCloud session, found by itself; 'ballroom sc cookies -' turns it off" : `cookies from ${shown()}` };
-        if (want === "-" || want === COOKIES_OFF) { setWidgetValue("soundcloudCookies", COOKIES_OFF); return { json: { ok: true, cookies: "none" }, text: "no browser session is read any more, not even one found by itself" }; }
+        const shown = () => { const v = String(widgetValues().soundcloudCookies ?? "").trim(); return v && v !== COOKIES_OFF ? v.split(":")[0].split("+")[0] : "none"; };
+        if (!want) return { json: { ok: true, cookies: shown() }, text: shown() === "none" ? "no browser session is read; ballroom sc cookies auto or BROWSER chooses one" : `cookies from ${shown()}` };
+        if (want === "-" || want === COOKIES_OFF) { setWidgetValue("soundcloudCookies", COOKIES_OFF); return { json: { ok: true, cookies: "none" }, text: "no browser session is read any more" }; }
         // auto: the first store that carries a SoundCloud session. A browser named by hand is matched against
         // what was found, so the profile comes along; a name nothing matches is kept as it was typed.
         const found = browserStores();
@@ -3216,7 +3186,7 @@ const HELP = `ballroom ${VERSION}: the sound of this machine in one place
   ballroom sc open id:N        a playlist: its tracks become the results
   ballroom sc name [NAME|-] | sc whoami   the profile the lists belong to; whoami reads it from the browser session
   ballroom sc browsers         which browsers keep a cookie store here, and which is signed in on SoundCloud
-  ballroom sc cookies [auto|BROWSER|-]   which browser session yt-dlp may read; unset, the one signed in; - reads none
+  ballroom sc cookies [auto|BROWSER|-]   which browser session yt-dlp may read; auto takes the one signed in; unset or - reads none
   ballroom di search QUERY | di play CHANNEL | di channels [NETWORK]   DI.FM and its sister stations (premium listen key)
   ballroom di key [set|-]      the DI.FM listen key: set reads it from a hidden prompt or stdin, never an argument
   ballroom fav [list|add [N]|rm N|play N]        favorites

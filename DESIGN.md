@@ -182,7 +182,7 @@ SoundCloud has no sign in for third party players, so Ballroom uses the session 
 signed in, the way `yt-dlp` can. To find that browser, the cookie stores are opened read only and only their host
 column is read, never a value. A Chromium store is locked with a key from the desktop keyring, and `yt-dlp` needs
 to be told which keyring; without it, it decrypts nothing and quietly returns only public tracks. So the keyrings
-are tried, without network, and only a run that opened every cookie counts. The answer is remembered for a day.
+are tried, without network, and only a run that opened every cookie counts.
 
 `yt-dlp` cannot export one site's cookies. To learn the profile name, it writes the whole jar to a file, which
 Ballroom creates first itself (exclusive, no links followed, readable by the user only, with the one header line
@@ -191,8 +191,10 @@ behind by a kill is swept on the next run. The request carries only the rows a b
 (`jarHeader`): domain exactly `soundcloud.com`, a path covering `/you`, not expired, nothing that could break the
 header.
 
-An empty `soundcloudCookies` means "the browser that holds a session, found by itself". Turning the session off
-therefore stores `none`, and every use of `yt-dlp` and the profile request read no browser then.
+A browser session is read only after the user chose that browser (`soundcloudCookies` names it). An empty setting
+and `none`, which `sc cookies -` stores, read no browser: no `yt-dlp` call and no profile request carries one. There
+is no automatic choice behind an empty value, so a setting that was cleared stays off across updates. The panel
+says "public only" only while the saved setting names no browser, not because a click asked for it.
 
 ## The widget around the command
 

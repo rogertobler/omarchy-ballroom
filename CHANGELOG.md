@@ -7,6 +7,20 @@ The version in `manifest.json` is the single source of truth. The `VERSION` cons
 which `ballroom --version` prints, is kept equal to it. Every release is one commit on `main`, tagged `vX.Y.Z`.
 Between releases `main` stands still, because the Omarchy marketplace pins a listing to an exact commit.
 
+## [0.1.2] 2026-11-19
+
+### Changed
+
+- A browser session for SoundCloud is read only after you chose the browser, in the panel or with
+  `ballroom sc cookies auto|BROWSER`. An empty setting no longer means "take the browser that is signed in", so a
+  setting cleared to turn the session off in 0.1.0 stays off after the update. The automatic choice and its memo
+  `sc-cookies.json` are gone.
+
+### Fixed
+
+- "Without a browser" in the panel shows the public profile field only while the saved setting really names no
+  browser. Before, it switched on the click, even when saving the setting failed.
+
 ## [0.1.1] 2026-11-19
 
 ### Fixed
@@ -80,5 +94,6 @@ The first release.
 - `install.sh` does not replace a command or unit of the same name that belongs to another program, and the
   uninstaller does not remove one.
 
+[0.1.2]: https://github.com/rogertobler/omarchy-ballroom/releases/tag/v0.1.2
 [0.1.1]: https://github.com/rogertobler/omarchy-ballroom/releases/tag/v0.1.1
 [0.1.0]: https://github.com/rogertobler/omarchy-ballroom/releases/tag/v0.1.0

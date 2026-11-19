@@ -191,9 +191,9 @@ A player without a window, for three sources:
 
 - **Radio** from the community directory at radio-browser.info, forty stations at a time.
 - **SoundCloud** through `yt-dlp`: search, and the likes, playlists, uploads and reposts of a profile. With the
-  session of a browser that is signed in to SoundCloud, your private likes and tracks show as well. Ballroom finds
-  that browser by itself; `ballroom sc cookies` chooses another one, and `ballroom sc cookies -` (or "Without a
-  browser" in the panel) turns the session off, the automatic choice included.
+  session of a browser that is signed in to SoundCloud, your private likes and tracks show as well. No browser is
+  read until you choose one: in the panel, or with `ballroom sc cookies auto` (the one signed in) or
+  `ballroom sc cookies BROWSER`. `ballroom sc cookies -` (or "Without a browser" in the panel) turns it off again.
 - **DI.FM** and its sister stations (RadioTunes, JazzRadio, ClassicalRadio, RockRadio, ZenRadio), with a
   **DI.FM Premium** listen key only. The free streams of these stations play an announcement in other players,
   so Ballroom does not offer them.
@@ -280,7 +280,7 @@ In `$XDG_RUNTIME_DIR/ballroom/`, gone at logout: `lock` (one writer at a time), 
 `outputs-seen.json` (the outputs that were there at the last check, so that only new ones are capped),
 `eq-live.json`, `eq-compensation.json` and `eq-failed.json` (the equalizer's preamp and the level it took off),
 `stage-now.json`, `stage-results.json`, `stage-sc.json` and `stage-di-now.json` (what plays, the last search, a
-SoundCloud list, the DI.FM title), `sc-cookies.json` (which browser session unlocked, never a cookie), and a
+SoundCloud list, the DI.FM title), and a
 `cava-<pid>.conf` per running spectrum. Ballroom refuses to run without `XDG_RUNTIME_DIR` rather than fall back to
 `/tmp`.
 
@@ -297,8 +297,8 @@ SoundCloud list, the DI.FM title), `sc-cookies.json` (which browser session unlo
   and before Ballroom sends its own request with the session, and sweeps one left behind by a killed run. Of the
   rows it reads, only those a browser itself would send to `soundcloud.com/you` go into that request: the domain
   `soundcloud.com` exactly, a path that covers `/you`, not expired. The name it finds is kept, so this happens once.
-- `ballroom sc cookies -` stops every use of a browser session, also the one Ballroom would otherwise find by
-  itself.
+- A browser session is used only after you chose that browser. Left unset, or set off with
+  `ballroom sc cookies -`, no `yt-dlp` call and no request reads one.
 - Ballroom's directories are created readable by you only and refused when they are a link or belong to someone
   else.
 - The command runs its tools from a fixed path, not from your `PATH`, and the widget runs it with a cleared
