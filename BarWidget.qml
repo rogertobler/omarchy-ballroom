@@ -2157,10 +2157,12 @@ Panel {
                           fontFamily: root.fontFamily
                           fontSize: Style.font.caption
                           onClicked: {
+                            // Both ways leave no browser session in use: an empty setting would mean "take the
+                            // one that is signed in", so going without a browser has to say "none".
+                            if (svc.soundcloudCookies !== "none") svc.setSoundcloudCookies("-")
                             if (scSetup.choosing) { root.nameByHand = true; return }
                             root.nameByHand = false
                             root.accountAsked = false
-                            if (svc.soundcloudCookies !== "") svc.setSoundcloudCookies("-")
                           }
                         }
                       }
@@ -2209,8 +2211,7 @@ Panel {
                       textFormat: Text.PlainText
                       text: root.stageSource === "fav" ? "No favorites yet: the star on a result keeps one here"
                         : root.stageSource === "soundcloud" && root.scView !== "search"
-                          ? (svc.fetchingList ? "Asking SoundCloud…" : root.rowFilter !== "" ? "Nothing in your " + root.scView + " matches «" + root.rowFilter + "»"
-                             : "Nothing in your " + root.scView)
+                          ? (svc.fetchingList ? "Asking SoundCloud…" : "Nothing in your " + root.scView)
                         : root.rowFilter !== ""
                           ? (svc.searching ? "Asking " + Model.sourceTab(root.stageSource) + "…" : "Nothing found for «" + root.rowFilter + "»")
                           : "Nothing here yet: type above, and the star on a result keeps it under FAVORITES"
@@ -2356,7 +2357,7 @@ Panel {
                   Timer { interval: 300; running: parent.wantsBrowsers; onTriggered: svc.findBrowsers() }
                   // Only once a browser has been picked: before that, nothing opens a cookie store.
                   readonly property bool wantsAccount: root.foldOpen("library") && root.opened && root.showStage && root.stageSource === "soundcloud"
-                    && svc.soundcloudUser === "" && svc.soundcloudCookies !== "" && !root.accountAsked
+                    && svc.soundcloudUser === "" && Model.browserName(svc.soundcloudCookies) !== "" && !root.accountAsked
                   Timer { interval: 300; running: parent.wantsAccount; onTriggered: { root.accountAsked = true; svc.findAccount() } }
                 }
     }

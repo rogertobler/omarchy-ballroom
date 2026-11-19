@@ -520,7 +520,8 @@ function browserOptions(browsers, current) {
 // The browser out of what `ballroom sc cookies` holds: BROWSER[+KEYRING][:PROFILE].
 function browserName(spec) {
   var c = String(spec || "").trim()
-  return c ? c.split(":")[0].split("+")[0] : ""
+  // "none" is the setting that reads no browser at all; it names none.
+  return c && c !== "none" ? c.split(":")[0].split("+")[0] : ""
 }
 // What the list stands on: the browser that was named by hand, or, when none was, the one Ballroom takes by
 // itself, which is the one that holds a session.
@@ -652,7 +653,7 @@ function scList(st, view, user) {
 // cannot answer are furniture.
 function sourceUsable(st, source, scUser, scCookies) {
   if (source === "di") return !!st && !!st.diKey
-  if (source === "soundcloud") return String(scUser || "").trim() !== "" || String(scCookies || "").trim() !== ""
+  if (source === "soundcloud") return String(scUser || "").trim() !== "" || browserName(scCookies) !== ""
   return true
 }
 // The rules whose application is not making a sound right now: they have no row among the streams, so they are
@@ -771,9 +772,11 @@ function barMedia(st, players, held) {
 function rowFilter(st, source, scView, text) {
   var t = String(text || "").trim().toLowerCase()
   if (!t) return ""
+  // The field stands only where one searches: not over FAVORITES and not over a SoundCloud list. Words that are
+  // not to be seen must not thin out a list, or LIKES says nothing matches a search made on another tab.
+  if (source === "fav" || (source === "soundcloud" && scView && scView !== "search")) return ""
   var r = st && st.results && st.results.items instanceof Array && (!source || st.results.kind === source) ? st.results : null
-  var listView = source === "soundcloud" && scView && scView !== "search"
-  if (!listView && r && String(r.query || "").trim().toLowerCase() === t) return ""
+  if (r && String(r.query || "").trim().toLowerCase() === t) return ""
   return t
 }
 function matches(x, words) {

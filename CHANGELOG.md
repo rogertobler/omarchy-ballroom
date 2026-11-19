@@ -7,6 +7,20 @@ The version in `manifest.json` is the single source of truth. The `VERSION` cons
 which `ballroom --version` prints, is kept equal to it. Every release is one commit on `main`, tagged `vX.Y.Z`.
 Between releases `main` stands still, because the Omarchy marketplace pins a listing to an exact commit.
 
+## [0.1.1] 2026-11-19
+
+### Fixed
+
+- Turning the browser session off now turns it off. `ballroom sc cookies -` and "Without a browser" in the panel
+  stored an empty setting, and an empty setting means "take the browser that is signed in", so SoundCloud lists
+  could still use a signed-in browser. The setting is now `none`, and no `yt-dlp` call and no profile request
+  reads a browser then.
+- The profile request to `soundcloud.com/you` carries only the cookies a browser itself would send there: domain
+  exactly `soundcloud.com`, a path that covers `/you`, not expired. Before, every row whose domain ended in
+  `soundcloud.com` went along, whatever its path. HttpOnly rows are now read like the others.
+- The search field filters only the search. Words left in it no longer thin out LIKES, PLAYLISTS, UPLOADS or
+  FAVORITES, where the field is not shown, so a list no longer claims that nothing in it matches.
+
 ## [0.1.0] 2026-11-19
 
 The first release.
@@ -66,4 +80,5 @@ The first release.
 - `install.sh` does not replace a command or unit of the same name that belongs to another program, and the
   uninstaller does not remove one.
 
+[0.1.1]: https://github.com/rogertobler/omarchy-ballroom/releases/tag/v0.1.1
 [0.1.0]: https://github.com/rogertobler/omarchy-ballroom/releases/tag/v0.1.0

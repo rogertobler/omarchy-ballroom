@@ -192,7 +192,8 @@ A player without a window, for three sources:
 - **Radio** from the community directory at radio-browser.info, forty stations at a time.
 - **SoundCloud** through `yt-dlp`: search, and the likes, playlists, uploads and reposts of a profile. With the
   session of a browser that is signed in to SoundCloud, your private likes and tracks show as well. Ballroom finds
-  that browser by itself; `ballroom sc cookies` chooses another one.
+  that browser by itself; `ballroom sc cookies` chooses another one, and `ballroom sc cookies -` (or "Without a
+  browser" in the panel) turns the session off, the automatic choice included.
 - **DI.FM** and its sister stations (RadioTunes, JazzRadio, ClassicalRadio, RockRadio, ZenRadio), with a
   **DI.FM Premium** listen key only. The free streams of these stations play an announcement in other players,
   so Ballroom does not offer them.
@@ -293,8 +294,11 @@ SoundCloud list, the DI.FM title), `sc-cookies.json` (which browser session unlo
   column only, never at a cookie value. `yt-dlp` decrypts the session. To learn your profile name once
   (`ballroom sc whoami`), `yt-dlp` has to write the browser's whole cookie jar to a file: Ballroom creates that
   file itself in the runtime directory, readable by you only, deletes it as soon as the SoundCloud rows are read
-  and before Ballroom sends its own request with the session, and sweeps one left behind by a killed run. The name it finds is kept, so this
-  happens once.
+  and before Ballroom sends its own request with the session, and sweeps one left behind by a killed run. Of the
+  rows it reads, only those a browser itself would send to `soundcloud.com/you` go into that request: the domain
+  `soundcloud.com` exactly, a path that covers `/you`, not expired. The name it finds is kept, so this happens once.
+- `ballroom sc cookies -` stops every use of a browser session, also the one Ballroom would otherwise find by
+  itself.
 - Ballroom's directories are created readable by you only and refused when they are a link or belong to someone
   else.
 - The command runs its tools from a fixed path, not from your `PATH`, and the widget runs it with a cleared

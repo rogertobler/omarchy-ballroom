@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "rogertobler.ballroom",
   "name": "Ballroom",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "Roger Tobler",
   "license": "MIT",
   "description": "The sound of your machine in one place: every output and input, volume per app and per device, an equalizer per device, radio, SoundCloud and DI.FM in the panel, Bluetooth codecs, and a live spectrum.",
@@ -88,7 +88,7 @@
         "key": "soundcloudCookies",
         "type": "string",
         "label": "SoundCloud browser cookies",
-        "description": "The browser whose SoundCloud session may be read, so that private likes and tracks appear too. Ballroom takes the browser that holds a session by itself; choose one here only to override that, for a profile it does not find.",
+        "description": "The browser whose SoundCloud session may be read, so that private likes and tracks appear too. Left empty, Ballroom takes the browser that holds a session by itself; choose one here to override that, or none to read no browser at all.",
         "defaultValue": "",
         "optionsFrom": "browsers",
         "placeholder": "found by itself"

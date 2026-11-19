@@ -24,7 +24,7 @@ import { join } from "path";
 import { isatty } from "tty";
 import { Database } from "bun:sqlite";
 
-const VERSION = "0.1.0";
+const VERSION = "0.1.1";
 
 // ---------------------------------------------------------------- places
 // The bench sets BALLROOM_BENCH=1 and may then hand in a recorded graph, fake servers and a short time limit.
@@ -1998,8 +1998,12 @@ const queueOf = (items: StageItem[], pos: number): Queue => ({ ids: items.map(st
 // browser, optionally +keyring, optionally :profile. The leading letters keep a value from ever starting with a
 // dash, so it cannot be read as an option however it reaches yt-dlp.
 const cookieSpecOk = (v: string) => /^[a-z]+(\+[a-z]+)?(:[^\r\n]{1,240})?$/.test(v);
+// "none" is the way to say no: an empty setting means "take the browser that holds a session", so clearing it
+// could never have turned the reading off.
+const COOKIES_OFF = "none";
 function ytdlpCookieArgs(): string[] {
   const v = String(widgetValues().soundcloudCookies ?? "").trim();
+  if (v === COOKIES_OFF) return [];
   if (!v) { const auto = autoCookieSpec(); return auto ? ["--cookies-from-browser", auto] : []; }
   if (!cookieSpecOk(v)) { warnings.push("the SoundCloud browser cookies setting is not a browser name like brave or brave:/path/to/profile; ignored"); return []; }
   // A Chromium store without a keyring in the spec opens nothing and says nothing about it: only the public
@@ -2147,6 +2151,29 @@ function loadScList(): ScList | null {
 // can send it anywhere else), it is removed the moment it has been read and before any request goes out, a
 // signal removes it too, and one left by a kill is swept on the next run. It happens once per user: the name it
 // finds is kept, and nothing asks again.
+// The Cookie header a browser itself would send with a request to https://HOST PATH, from a Netscape jar: only
+// rows whose domain is that host (a row for another host, or for a host that merely ends in the same letters,
+// stays out), whose path covers the request path, and that have not expired. HttpOnly rows carry a "#HttpOnly_"
+// prefix and are rows like the others. A name or value that could break the header is left out.
+function jarHeader(text: string, host: string, path: string, now = Date.now() / 1000): string {
+  const pairs: string[] = [];
+  for (let line of text.split("\n")) {
+    line = line.replace(/\r$/, "");
+    if (line.startsWith("#HttpOnly_")) line = line.slice(10);
+    else if (!line || line.startsWith("#")) continue;
+    const f = line.split("\t");
+    if (f.length < 7) continue;
+    const [domain, , cpath, , expires, name, value] = f;
+    if (domain.toLowerCase().replace(/^\./, "") !== host) continue;
+    const p = cpath || "/";
+    if (!(p === "/" || path === p || path.startsWith(p.endsWith("/") ? p : p + "/"))) continue;
+    const exp = Number(expires);
+    if (Number.isFinite(exp) && exp > 0 && exp < now) continue;
+    if (!name || /[;,\s=]/.test(name) || /[;\r\n]/.test(value)) continue;
+    pairs.push(`${name}=${value}`);
+  }
+  return pairs.join("; ");
+}
 function sweepJars() {
   for (const f of readdirSync(RUNTIME).filter((x) => /^sc-jar\.\d+$/.test(x))) {
     const pid = Number(f.slice(7));
@@ -2175,13 +2202,7 @@ async function soundcloudWhoami(): Promise<string | null> {
     } catch { return null; }
     run(["yt-dlp", "--no-warnings", ...args, "--cookies", jar, "--skip-download", "--simulate", "--", "https://soundcloud.com/discover"], 30000);
     let text = ""; try { text = readFileSync(jar, "utf8"); } catch { return null; }
-    const pairs: string[] = [];
-    for (const line of text.split("\n")) {
-      if (!line || line.startsWith("#")) continue;
-      const f = line.split("\t");
-      if (f.length >= 7 && /soundcloud\.com$/.test(f[0].replace(/^\./, ""))) pairs.push(`${f[5]}=${f[6]}`);
-    }
-    header = pairs.join("; ");
+    header = jarHeader(text, "soundcloud.com", "/you");
   } finally {
     drop();
     process.off("SIGTERM", bail); process.off("SIGINT", bail); process.off("SIGHUP", bail);
@@ -2189,7 +2210,7 @@ async function soundcloudWhoami(): Promise<string | null> {
   if (!header) return null;
   let location = "";
   try {
-    const res = await fetch("https://soundcloud.com/you", { redirect: "manual", headers: { cookie: header, "user-agent": STAGE_UA },
+    const res = await fetch((BENCH && process.env.BALLROOM_SC_YOU) || "https://soundcloud.com/you", { redirect: "manual", headers: { cookie: header, "user-agent": STAGE_UA },
                                                             signal: AbortSignal.timeout(15000) });
     location = res.headers.get("location") ?? "";
   } catch { return null; }
@@ -2578,9 +2599,10 @@ async function verbStage(verb: string, args: string[]): Promise<Out> {
                                       : "no browser keeps a cookie store here" };
         }
         const want = rest.join(" ").trim();
-        const shown = () => { const v = String(widgetValues().soundcloudCookies ?? "").trim(); return v.split(":")[0] || "none"; };
-        if (!want) return { json: { ok: true, cookies: shown() }, text: shown() === "none" ? "no browser named; ballroom sc cookies auto" : `cookies from ${shown()}` };
-        if (want === "-") { setWidgetValue("soundcloudCookies", ""); return { json: { ok: true, cookies: "none" }, text: "no cookies are read any more" }; }
+        const shown = () => { const v = String(widgetValues().soundcloudCookies ?? "").trim(); return v === COOKIES_OFF ? "none" : v ? v.split(":")[0].split("+")[0] : "auto"; };
+        if (!want) return { json: { ok: true, cookies: shown() }, text: shown() === "none" ? "no browser session is read; ballroom sc cookies auto turns it on"
+          : shown() === "auto" ? "the browser that holds a SoundCloud session, found by itself; 'ballroom sc cookies -' turns it off" : `cookies from ${shown()}` };
+        if (want === "-" || want === COOKIES_OFF) { setWidgetValue("soundcloudCookies", COOKIES_OFF); return { json: { ok: true, cookies: "none" }, text: "no browser session is read any more, not even one found by itself" }; }
         // auto: the first store that carries a SoundCloud session. A browser named by hand is matched against
         // what was found, so the profile comes along; a name nothing matches is kept as it was typed.
         const found = browserStores();
@@ -3194,7 +3216,7 @@ const HELP = `ballroom ${VERSION}: the sound of this machine in one place
   ballroom sc open id:N        a playlist: its tracks become the results
   ballroom sc name [NAME|-] | sc whoami   the profile the lists belong to; whoami reads it from the browser session
   ballroom sc browsers         which browsers keep a cookie store here, and which is signed in on SoundCloud
-  ballroom sc cookies [auto|BROWSER|-]   which browser session yt-dlp may read; auto takes the one signed in
+  ballroom sc cookies [auto|BROWSER|-]   which browser session yt-dlp may read; unset, the one signed in; - reads none
   ballroom di search QUERY | di play CHANNEL | di channels [NETWORK]   DI.FM and its sister stations (premium listen key)
   ballroom di key [set|-]      the DI.FM listen key: set reads it from a hidden prompt or stdin, never an argument
   ballroom fav [list|add [N]|rm N|play N]        favorites

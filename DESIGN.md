@@ -187,7 +187,12 @@ are tried, without network, and only a run that opened every cookie counts. The 
 `yt-dlp` cannot export one site's cookies. To learn the profile name, it writes the whole jar to a file, which
 Ballroom creates first itself (exclusive, no links followed, readable by the user only, with the one header line
 `yt-dlp` needs to accept it), reads, and deletes before Ballroom sends its own request with the session. A signal deletes it too, and one left
-behind by a kill is swept on the next run.
+behind by a kill is swept on the next run. The request carries only the rows a browser would send to that address
+(`jarHeader`): domain exactly `soundcloud.com`, a path covering `/you`, not expired, nothing that could break the
+header.
+
+An empty `soundcloudCookies` means "the browser that holds a session, found by itself". Turning the session off
+therefore stores `none`, and every use of `yt-dlp` and the profile request read no browser then.
 
 ## The widget around the command
 
