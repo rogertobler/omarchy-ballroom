@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "id": "rogertobler.ballroom",
+  "name": "Ballroom",
+  "version": "0.1.0",
+  "author": "Roger Tobler",
+  "license": "MIT",
+  "description": "The sound of your machine in one place: every output and input, volume per app and per device, an equalizer per device, radio, SoundCloud and DI.FM in the panel, Bluetooth codecs, and a live spectrum.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Ballroom",
+    "description": "Outputs, inputs, what plays where, an equalizer that follows the default output, and a stage for radio, SoundCloud and DI.FM, with a spectrum in the bar. Replaces the built-in audio widget while it is enabled.",
+    "category": "Audio",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "title": "",
+      "stageButton": true,
+      "spectrum": true,
+      "inputSpectrum": true,
+      "inputMeters": true,
+      "sections": "",
+      "soundcloudUser": "",
+      "soundcloudCookies": "",
+      "spectrumBars": 8,
+      "spectrumColor": "Mono",
+      "refreshIntervalSec": 5
+    },
+    "schema": [
+      {
+        "key": "title",
+        "type": "string",
+        "label": "Name",
+        "description": "What the plugin calls itself in its panel. Empty means Ballroom. The widget list and the terminal command keep their own names.",
+        "defaultValue": "",
+        "placeholder": "Ballroom"
+      },
+      {
+        "key": "stageButton",
+        "type": "boolean",
+        "label": "Pause button in the bar",
+        "description": "While something plays that can be paused, radio, SoundCloud, DI.FM, a browser or a music player, a button beside the speaker icon pauses all of it without opening the panel. The next click plays again exactly what it paused. Right-click stops, and the button goes until something plays again.",
+        "defaultValue": true
+      },
+      {
+        "key": "spectrum",
+        "type": "boolean",
+        "label": "Show the spectrum",
+        "description": "A small spectrum next to the icon while something plays, and a larger one in the panel. Needs cava.",
+        "defaultValue": true
+      },
+      {
+        "key": "inputSpectrum",
+        "type": "boolean",
+        "label": "Spectrum of the microphone",
+        "description": "A spectrum of the microphone while the panel is open. Ballroom reads the input only then, and never while it is muted.",
+        "defaultValue": true
+      },
+      {
+        "key": "inputMeters",
+        "type": "boolean",
+        "label": "Level bar in every input row",
+        "description": "A level bar in every input row while the panel is open, so the microphone that hears something shows it. An input that is muted in PipeWire is not read.",
+        "defaultValue": true
+      },
+      {
+        "key": "sections",
+        "type": "string",
+        "label": "Sections and their order",
+        "optionsFrom": "sections",
+        "description": "Which parts the panel shows and in which order. Every section can be switched off and moved, so the panel can be laid out the way it is used: the level at the top for one, the library for another. A section added by a later version appears at the end and is on until it is moved.",
+        "defaultValue": ""
+      },
+      {
+        "key": "soundcloudUser",
+        "type": "string",
+        "label": "SoundCloud name",
+        "description": "The SoundCloud profile whose likes, playlists and uploads the library shows: the part after soundcloud.com/ in its address. Left empty, Ballroom reads it from the browser that is signed in, so most people never set it.",
+        "defaultValue": "",
+        "placeholder": "read from your browser"
+      },
+      {
+        "key": "soundcloudCookies",
+        "type": "string",
+        "label": "SoundCloud browser cookies",
+        "description": "The browser whose SoundCloud session may be read, so that private likes and tracks appear too. Ballroom takes the browser that holds a session by itself; choose one here only to override that, for a profile it does not find.",
+        "defaultValue": "",
+        "optionsFrom": "browsers",
+        "placeholder": "found by itself"
+      },
+      {
+        "key": "spectrumBars",
+        "type": "integer",
+        "label": "Bars in the spectrum",
+        "min": 4,
+        "max": 24,
+        "step": 1,
+        "defaultValue": 8,
+        "description": "How many bars the spectrum is drawn with. Fewer are wider and easier to read at a glance; more of them show where in the sound the energy sits. It sets the small one beside the icon in the bar and the larger ones in the panel alike, and it does nothing while the spectrum is off."
+      },
+      {
+        "key": "spectrumColor",
+        "type": "enum",
+        "label": "Colour of the bars",
+        "options": [
+          "Mono",
+          "Accent",
+          "Rainbow"
+        ],
+        "defaultValue": "Mono",
+        "description": "What colour the bars are drawn in: the bar's own foreground, the theme's accent, or one hue per band. It does nothing while the spectrum is off."
+      },
+      {
+        "key": "refreshIntervalSec",
+        "type": "integer",
+        "label": "Status interval (seconds)",
+        "description": "How often Ballroom asks PipeWire what the sound is doing while the panel is closed, in seconds. It is what keeps the icon and the spectrum in the bar current. A shorter interval follows a change sooner and wakes the machine more often; while the panel is open Ballroom reads far more often anyway, so this only sets the quiet pace.",
+        "min": 2,
+        "max": 60,
+        "step": 1,
+        "defaultValue": 5
+      }
+    ]
+  },
+  "omarchy": {
+    "clonedFrom": "omarchy.audio"
+  }
+}

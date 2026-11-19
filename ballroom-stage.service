@@ -1,0 +1,17 @@
+[Unit]
+Description=Ballroom stage, a headless mpv for radio, SoundCloud and DI.FM
+Documentation=https://github.com/rogertobler/omarchy-ballroom
+After=pipewire.service
+StartLimitIntervalSec=60
+StartLimitBurst=4
+
+[Service]
+# Started by `ballroom play` when the stage socket does not answer, stopped by `ballroom stage quit`. mpv sits
+# idle without a window and takes every address over the socket in %t/ballroom, never as an argument.
+# --no-config: a user's mpv.conf must not change what the stage does. --ytdl=no: with it on, mpv hands every
+# address to yt-dlp first and a radio stream never plays; SoundCloud pages are resolved by `ballroom` instead.
+# mpv-mpris is not loaded: without a session bus it stalls mpv. The stream in the graph is named Ballroom.
+ExecStartPre=/usr/bin/mkdir -p -m 700 %t/ballroom
+ExecStart=/usr/bin/mpv --no-config --idle=yes --no-video --no-terminal --really-quiet --audio-client-name=Ballroom --input-ipc-server=%t/ballroom/mpv.sock --ytdl=no --cache=yes --demuxer-max-bytes=8MiB --network-timeout=15
+Restart=on-failure
+RestartSec=2

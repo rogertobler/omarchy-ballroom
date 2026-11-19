@@ -1,0 +1,15 @@
+[Unit]
+Description=Ballroom equalizer, a PipeWire filter-chain in front of the default output
+Documentation=https://github.com/rogertobler/omarchy-ballroom
+After=pipewire.service
+BindsTo=pipewire.service
+# A configuration that cannot load fails every time: give up after a few tries instead of looping.
+StartLimitIntervalSec=60
+StartLimitBurst=4
+
+[Service]
+# Written by `ballroom eq`; started and stopped by it too. WirePlumber puts the filter in front of the default
+# output as a smart filter and is never restarted for it.
+ExecStart=/usr/bin/pipewire -c %h/.config/ballroom/eq.conf
+Restart=on-failure
+RestartSec=2
