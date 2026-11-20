@@ -77,8 +77,9 @@ actually does.
 The widget runs `apply` whenever something in the graph comes or goes, a click in the panel runs a verb beside it,
 and a terminal or a key binding may run a third. Two of them changing a settings file, or restarting the
 equalizer, at the same moment would lose one change or restart twice. So every verb that writes a settings file or
-touches the equalizer takes a lock: a file in the runtime directory holding the writer's process id. A lock whose
-process is gone is taken over; a lock that stays busy for five seconds is reported, not broken. Reading verbs never
+touches the equalizer takes a lock: `flock` on a file in the runtime directory that stays in place. The kernel lets
+go of it when its holder ends, however it ends, so there is nothing stale to take over; a lock that stays busy for
+five seconds is reported, not broken. Reading verbs never
 take it, so the bar keeps reading while a writer works. Changing a level or a mute (`vol`, `mute`, `in`) writes no
 file and takes no lock: it is one call to `wpctl`, read back like every other write.
 
@@ -131,9 +132,10 @@ holds.
 **It is never stopped to switch it off.** When a node vanishes under a playing stream, many players pause, and a
 rebuild plays the stream straight on the device for a moment without the preamp, which is the jump to loud this
 design exists to prevent. So once the process runs, every change is a change of values, and "off" sets every
-filter to neutral and leaves the process running. Only `eq restart` and `eq stop` end it, and the installer
-restarts it after an update. Off, stop and the uninstaller all bring the output down by the preamp first and only
-then take the preamp away, so none of them is louder for a moment.
+filter to neutral and leaves the process running. Only `eq restart` and `eq stop` end it; the installer
+restarts it after an update, and `ballroom eq restart` does the same after a store update. Off, stop and the
+uninstaller all bring the output down by the preamp first and only then take the preamp away, so none of them is
+louder for a moment.
 
 **The filter graph has one fixed shape**: per channel, a 2 by 2 mixer for balance, mono and swap, a preamp, then 16
 peaking filters, 4 low shelves and 4 high shelves. A filter at 0 dB passes the sound unchanged, so every preset

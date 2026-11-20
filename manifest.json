@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "rogertobler.ballroom",
   "name": "Ballroom",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "author": "Roger Tobler",
   "license": "MIT",
   "description": "The sound of your machine in one place: every output and input, volume per app and per device, an equalizer per device, radio, SoundCloud and DI.FM in the panel, Bluetooth codecs, and a live spectrum.",

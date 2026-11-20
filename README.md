@@ -26,6 +26,26 @@ levels and caps, routes per application, Bluetooth codecs, an equalizer, a spect
 
 ## Install
 
+From the store, or by hand:
+
+```sh
+omarchy plugin add https://github.com/rogertobler/omarchy-ballroom --enable
+```
+
+That is all it needs. The command `ballroom` ships in the plugin folder, and the widget runs it from there. It
+writes its two user units to `~/.config/systemd/user` itself the first time it starts the equalizer or the stage.
+Ballroom has no system part: everything it touches belongs to your account.
+
+For the `ballroom` command in a terminal, run the installer from the plugin folder once. It copies nothing,
+links `~/.local/bin/ballroom` to the command there and puts `ballroom-uninstall` next to it:
+
+```sh
+~/.config/omarchy/plugins/rogertobler.ballroom/install.sh
+```
+
+From a checkout of your own, the installer also copies the plugin into
+`~/.config/omarchy/plugins/rogertobler.ballroom` and enables it. Run it as yourself, without `sudo`:
+
 ```sh
 git clone https://github.com/rogertobler/omarchy-ballroom
 cd omarchy-ballroom
@@ -33,23 +53,13 @@ cd omarchy-ballroom
 omarchy restart shell
 ```
 
-Run it as yourself, without `sudo`. Ballroom has no system part: everything it touches belongs to your account.
-The installer puts the widget into `~/.config/omarchy/plugins/rogertobler.ballroom`, the `ballroom` command and
-`ballroom-uninstall` into `~/.local/bin`, and two user units into `~/.config/systemd/user`, then enables the
-plugin. The restart afterwards is needed because Qt keeps the old QML files otherwise.
-
-The widget runs `~/.local/bin/ballroom` for everything it shows and does, so the installer is not optional. If
-you add the plugin from the store or with `omarchy plugin add`, run the installer from the plugin folder once
-afterwards; it notices that it already sits there and copies nothing over itself:
-
-```sh
-omarchy plugin add https://github.com/rogertobler/omarchy-ballroom
-~/.config/omarchy/plugins/rogertobler.ballroom/install.sh
-omarchy restart shell
-```
+The restart afterwards is needed because Qt keeps the old QML files otherwise. A plugin folder that is a git
+checkout from the store is never copied over: the installer only adds the link, and `omarchy plugin update`
+updates the plugin.
 
 The installer refuses to run while the screen is locked, because writing a plugin reloads the shell. It does not
-replace a `~/.local/bin/ballroom`, `ballroom-uninstall` or unit of the same name that belongs to another program.
+replace a `~/.local/bin/ballroom`, `ballroom-uninstall` or unit of the same name that belongs to another program,
+and neither does the command.
 
 ### Ballroom replaces the built-in audio widget
 
@@ -60,18 +70,19 @@ uninstaller. Nothing of the built-in widget is changed.
 
 ## Requirements
 
-Needed, the installer stops without them:
+Needed, all of them part of Omarchy:
 
-- **`bun`**, `sudo pacman -S bun`. The `ballroom` command is written against it.
+- **`python3`**, which the `ballroom` command is written in, and which Omarchy has for `yt-dlp`.
 - **`pw-dump`, `wpctl` and `pw-metadata`**, which come with PipeWire and WirePlumber.
 
-Optional, the installer names what is missing and goes on:
+Optional, the installer and `ballroom doctor` name what is missing:
 
 - **`cava`** for the spectrum. Without it there is no spectrum, and nothing else changes.
 - **`mpv`** for the stage. Without it there is no radio, SoundCloud or DI.FM.
 - **`yt-dlp`** for SoundCloud on the stage.
 
-All three are one `omarchy pkg add` away. `ballroom doctor` lists what is missing at any time.
+`mpv` and `yt-dlp` come with Omarchy; `cava` is one `omarchy pkg add cava` away. `ballroom doctor` lists what is
+missing at any time.
 
 ## In the bar
 
@@ -250,12 +261,12 @@ bindd = SUPER, F10, Equalizer off, exec, ballroom eq off --osd
 
 | Place | Holds |
 |---|---|
-| `~/.local/bin/ballroom`, `~/.local/bin/ballroom-uninstall` | the command and the uninstaller |
-| `~/.config/omarchy/plugins/rogertobler.ballroom/` | the widget: `manifest.json`, `BarWidget.qml`, `Service.qml`, `Model.js` |
-| `~/.config/systemd/user/ballroom-eq.service` | the equalizer, a PipeWire process of its own, started by `ballroom eq on` |
-| `~/.config/systemd/user/ballroom-stage.service` | the stage, a headless `mpv`, started by `ballroom play` |
+| `~/.config/omarchy/plugins/rogertobler.ballroom/` | the plugin: the widget, the `ballroom` command, the two unit files and `uninstall.sh` |
+| `~/.local/bin/ballroom`, `~/.local/bin/ballroom-uninstall` | only with the installer: a link to the command, and the uninstaller |
+| `~/.config/systemd/user/ballroom-eq.service` | the equalizer, a PipeWire process of its own, written and started by `ballroom eq on` |
+| `~/.config/systemd/user/ballroom-stage.service` | the stage, a headless `mpv`, written and started by `ballroom play` |
 | `~/.config/ballroom/` | your settings, see below |
-| `~/.cache/ballroom/` | the DI.FM channel lists, refreshed once a day |
+| `~/.cache/ballroom/` | the DI.FM channel lists, refreshed once a day, and the compiled command in `pyc/` |
 | `$XDG_RUNTIME_DIR/ballroom/` | what lasts one login, see below |
 
 In `~/.config/ballroom/`, every file readable by you only:
@@ -276,7 +287,8 @@ In `~/.config/ballroom/`, every file readable by you only:
 A file that cannot be read is moved aside as `NAME.invalid.<time>.json` and defaults apply, so you can still see
 what was in it.
 
-In `$XDG_RUNTIME_DIR/ballroom/`, gone at logout: `lock` (one writer at a time), `mpv.sock` (the stage),
+In `$XDG_RUNTIME_DIR/ballroom/`, gone at logout: `lock` (one writer at a time), `unit-lock` and `reload-<unit>`
+(putting the two units in place, and a reload still owed), `mpv.sock` (the stage),
 `outputs-seen.json` (the outputs that were there at the last check, so that only new ones are capped),
 `eq-live.json`, `eq-compensation.json` and `eq-failed.json` (the equalizer's preamp and the level it took off),
 `stage-now.json`, `stage-results.json`, `stage-sc.json` and `stage-di-now.json` (what plays, the last search, a
@@ -310,14 +322,28 @@ SoundCloud list, the DI.FM title), and a
 cd omarchy-ballroom && git pull && ./install.sh && omarchy restart shell
 ```
 
-Added from the store: `omarchy plugin update rogertobler.ballroom`, then run the installer from the plugin folder
-again. An equalizer that is on is rebuilt by the installer, because an update may change its graph.
+Added from the store: `omarchy plugin update rogertobler.ballroom`, then `omarchy restart shell`. The command
+brings its unit files up to date the next time it starts one. An update may change the equalizer's graph:
+`~/.config/omarchy/plugins/rogertobler.ballroom/ballroom eq restart` rebuilds an equalizer that is on, and the
+installer does that for you.
+
+Coming from 0.1, where the command was a copy in `~/.local/bin` that needed `bun`: run the installer once more,
+from your checkout or from the plugin folder. It replaces that copy with a link, so the terminal and your key
+bindings run the same command as the panel. Until then the old copy and the panel do not wait for each other when
+both write at the same moment. `ballroom doctor` warns while an old copy is left.
 
 ## Uninstall
 
 ```sh
 ballroom-uninstall            # keeps your settings in ~/.config/ballroom
 ballroom-uninstall --purge    # also removes your settings, the DI.FM listen key and the cache
+```
+
+Added from the store, run the uninstaller from the plugin folder first, then remove the plugin:
+
+```sh
+~/.config/omarchy/plugins/rogertobler.ballroom/uninstall.sh
+omarchy plugin remove rogertobler.ballroom
 ```
 
 The uninstaller disables the plugin, which gives the bar its built-in audio widget back, stops the equalizer and

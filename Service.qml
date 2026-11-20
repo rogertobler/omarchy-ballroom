@@ -35,7 +35,9 @@ Item {
   // The spectrum could not start twice in a row (cava missing, say): it stays off and this says why.
   property string spectrumError: ""
 
-  readonly property string bin: Quickshell.env("HOME") + "/.local/bin/ballroom"
+  // The command ships in the plugin folder, next to this file: the store only clones the repository, so nothing
+  // outside the folder may be needed for the panel to work. A copy in ~/.local/bin is for the terminal only.
+  readonly property string bin: decodeURIComponent(String(Qt.resolvedUrl("ballroom")).replace(/^file:\/\//, ""))
   // The name the plugin shows for itself, in the panel. The shell's widget list and
   // the store keep the manifest's name; those are not the plugin's to change.
   readonly property string title: {

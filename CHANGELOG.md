@@ -7,6 +7,34 @@ The version in `manifest.json` is the single source of truth. The `VERSION` cons
 which `ballroom --version` prints, is kept equal to it. Every release is one commit on `main`, tagged `vX.Y.Z`.
 Between releases `main` stands still, because the Omarchy marketplace pins a listing to an exact commit.
 
+## [0.2.0] 2026-11-20
+
+### Changed
+
+- The `ballroom` command is written in Python and runs on the `/usr/bin/python3` that Omarchy brings along. `bun`
+  is no longer needed.
+- `omarchy plugin add` alone gives a working plugin. The widget runs the command from the plugin folder, and the
+  command writes its two user units itself before it starts one. It never replaces a unit that is not its own, a
+  link or a masked unit.
+- `install.sh` is optional: it copies a checkout into the plugin folder, links `~/.local/bin/ballroom` to the
+  command there for the terminal, and only adds the link when the plugin folder is a checkout from the store.
+- The command keeps its compiled code in `~/.cache/ballroom/pyc`, so a call starts about as fast as before.
+
+### Fixed
+
+- The uninstaller no longer stops the equalizer when switching it off failed, which could leave the sound
+  louder. It stops, enables Ballroom again and says what to do.
+- A SoundCloud address gets the browser session only when it is `https` on `soundcloud.com`; an `http` address
+  there is raised to `https`. Before, any address that contained `soundcloud.com` did.
+- Finding a browser with a SoundCloud session no longer counts a host like `evilsoundcloud.com`.
+- One writer at a time is now held with `flock`, so two writers can no longer both take over a stale lock.
+- Every web request has one deadline from name lookup to the last byte, and a tool that prints without end is
+  stopped, together with anything it started.
+- Temporary files get unpredictable names and never follow a link. Leftovers of a killed writer, and a cookie jar
+  left by a killed `ballroom sc whoami`, are swept.
+- A closed or full output no longer ends in an error, and no trace is printed outside the test bench.
+- `ballroom doctor` warns when `~/.local/bin/ballroom` is an older copy instead of a link to the command.
+
 ## [0.1.2] 2026-11-19
 
 ### Changed
@@ -94,6 +122,7 @@ The first release.
 - `install.sh` does not replace a command or unit of the same name that belongs to another program, and the
   uninstaller does not remove one.
 
+[0.2.0]: https://github.com/rogertobler/omarchy-ballroom/releases/tag/v0.2.0
 [0.1.2]: https://github.com/rogertobler/omarchy-ballroom/releases/tag/v0.1.2
 [0.1.1]: https://github.com/rogertobler/omarchy-ballroom/releases/tag/v0.1.1
 [0.1.0]: https://github.com/rogertobler/omarchy-ballroom/releases/tag/v0.1.0
